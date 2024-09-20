@@ -1,0 +1,7 @@
+#files
+sam_vit_h_4b8939.pth
+models/object_detection/YOLO/yolov8s.pt
+
+#cache
+*.pyc
+*.cpython-*
