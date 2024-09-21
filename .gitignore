@@ -1,9 +1,12 @@
 #files
 sam_vit_h_4b8939.pth
 models/object_detection/YOLO/yolov8s.pt
+yolov8s.pt
+yolov8m-seg.pt
 
 #cache
 *.pyc
 *.cpython-*
-yolov8s.pt
-yolov8m-seg.pt
+
+#deep_data
+src/models/fill/deep_fill_v2/generative_inpainting/examples
