@@ -5,3 +5,5 @@ models/object_detection/YOLO/yolov8s.pt
 #cache
 *.pyc
 *.cpython-*
+yolov8s.pt
+yolov8m-seg.pt

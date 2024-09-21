@@ -23,9 +23,7 @@ class ClipEmbedding(EmbeddingModel):
         ].to(self.device)
 
         embedding = self.model.get_image_features(image_process)
-        # return embedding
 
-        # si quiere usarse numpy arrays cometar el return
         embedding_as_np = embedding.cpu().detach().numpy()
         return embedding_as_np
 
@@ -37,15 +35,11 @@ class ClipEmbedding(EmbeddingModel):
             text=text,
             images=image,
             padding=True,
-            # truncation=True,
-            # max_length=100,
             return_tensors="pt",
         ).to(self.device)
 
         outputs = self.model(**encoded_text)
         text_embeds = outputs["text_embeds"]
-        # return text_embeds
 
-        # si quiere usarse numpy arrays cometar el return
         embedding_as_np = text_embeds.cpu().detach().numpy()
         return embedding_as_np

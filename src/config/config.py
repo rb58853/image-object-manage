@@ -1,11 +1,3 @@
-from models.embeddings.CLIP.clip import ClipEmbedding
-from models.object_detection.SAM.sam import SAM
-
-class Models:
-    embedding = ClipEmbedding
-    object_detection = SAM
-
-
 class SamEnv:
     """
     - `points_per_side` define el número de puntos que se utilizan para generar las máscaras. Reducir este número puede acelerar el proceso de segmentación, pero también podría resultar en máscaras menos precisas.
@@ -21,4 +13,4 @@ class SamEnv:
     stability_score_thresh = 0.92
     crop_n_layers = 1
     crop_n_points_downscale_factor = 2
-    min_mask_region_area = 20 * 20
+    min_mask_region_area = 40 * 40
