@@ -1,5 +1,5 @@
-from config.config import SamEnv as env
-from features.image import Mask
+from src.config.config import SamEnv as env
+from src.features.image import Mask
 import torch
 import torchvision
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
