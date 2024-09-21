@@ -24,6 +24,4 @@ class YoloSegmentation:
             # use these indices to extract the relevant masks
             cat_masks = masks[cat_indices]
             print(cat_masks[0])
-            # scale for visualizing results
-            cat_masks = torch.any(cat_masks, dim=0).int() * 255
         pass

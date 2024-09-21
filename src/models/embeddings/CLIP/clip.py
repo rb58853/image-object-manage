@@ -7,6 +7,8 @@ from ..base import EmbeddingModel
 class ClipEmbedding(EmbeddingModel):
     def __init__(self) -> None:
         # self.model, self.processor, self.device = (None,None,None)
+        return 
+        #implementar la descarga del modelo para no cargarlo cada vez que se ejecute el codigo
         self.model, self.processor, self.device = self.get_model()
 
     def get_model(self):

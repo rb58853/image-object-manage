@@ -1,33 +1,8 @@
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
-from src.models.embeddings.default import model as embedding_model
 from src.models.object_detection.default import model as segmentation_model
+from .mask import Mask
 import cv2
-
-
-class Mask:
-    def __init__(self, bits_mask, box: dict, clss=None) -> None:
-        """
-        clss: es la clase de la imagen, por ejemplo cat o dog.
-        bits_mask: es el array o tensor de bits
-        box: limites de la mascara o cuadro segmentado
-        """
-        self.clss = clss
-        self.bits_mask = bits_mask
-        self.embedding_attr = None
-        self.box = box
-        self.center = (
-            (box["left"] + box["right"]) / 2,
-            (box["top"] + box["bottom"]) / 2,
-        )
-
-    def embedding(self):
-        """Genera el embedding con un modelo"""
-        if self.image is None:
-            raise Exception("Image is None")
-        if not self.embedding_attr:
-            self.embedding_attr = embedding_model.get_image_embedding(self.image)[0]
-        return self.embedding_attr
 
 
 class ImageFeature:
@@ -44,7 +19,14 @@ class ImageFeature:
         return self.name
 
     def generate_masks(self):
-        return segmentation_model.generate_masks(image=self.images)
+        return segmentation_model.generate_masks(image=self.image)
+
+    def fill_mask(self, mask):
+        # Hacer el proceso de llenar ese espacio de la mascara
+        return mask
+
+    def append_mask(self, mask: Mask, position: tuple, height, width):
+        return Exception("Not implemented function")
 
     def plot_box(self, ax):
         x1, y1 = self.left, self.buttom
