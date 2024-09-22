@@ -7,13 +7,13 @@ class Mask:
         bits_mask: es el array o tensor de bits
         box: limites de la mascara o cuadro segmentado
         """
-        self.clss = clss
+        self.cls = clss
         self.bits_mask = bits_mask
         self.embedding_attr = None
         self.box = box
         self.center = (
-            (box["left"] + box["right"]) / 2,
-            (box["top"] + box["bottom"]) / 2,
+            abs(box["left"] + box["right"]) / 2,
+            abs(box["top"] + box["bottom"]) / 2,
         )
         self.height = box["top"] - box["bottom"]
         self.width = box["right"] - box["left"]
@@ -28,3 +28,7 @@ class Mask:
 
     def resize(self):
         return Exception("Not implemented function")
+
+    def generate_image_mask(self):
+        
+        pass
