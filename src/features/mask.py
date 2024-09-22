@@ -1,5 +1,6 @@
 from src.models.embeddings.default import model as embedding_model
 
+
 class Mask:
     def __init__(self, bits_mask, box: dict, clss=None) -> None:
         """
@@ -26,9 +27,19 @@ class Mask:
             self.embedding_attr = embedding_model.get_image_embedding(self.image)[0]
         return self.embedding_attr
 
+    def match_with_cls(self, cls):
+        """
+        Devuelve si la mascara matchea con la clase pedida
+        """
+        if self.cls is not None:
+            return self.cls == cls
+        else:
+            # TODO usar embeddings multimodales para este caso y definir un umbral para el matcheo
+            return False
+
     def resize(self):
         return Exception("Not implemented function")
 
     def generate_image_mask(self):
-        
+
         pass
