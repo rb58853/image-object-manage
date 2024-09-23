@@ -13,6 +13,7 @@ src/models/fill/deep_fill_v2/generative_inpainting/examples
 
 #data
 data/images/generation/
+data/pretraineds/
 
 #tests
 view_img.py

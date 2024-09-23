@@ -2,3 +2,7 @@ git+https://github.com/JiahuiYu/neuralgym
 --no-cache-dir "lapx>=0.5.2" 
 tensorflow
 ultralytics
+pillow
+diffusers
+# controlnet
+# transformers 

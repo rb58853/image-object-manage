@@ -2,6 +2,7 @@ from PIL import Image
 from src.models.embeddings.default import model as embedding_model
 from src.config.config import Data
 from src.config.colors import Color
+import numpy as np
 
 
 class Mask:
@@ -32,7 +33,7 @@ class Mask:
         self.origin_height = image.height
         self.origin_width = image.width
 
-    def resize_to_origin(self, image):
+    def resize_to_origin(self, image, change_bit_mask=True):
         current_width = self.bits_mask.shape[0]
         current_height = self.bits_mask.shape[1]
 
@@ -52,6 +53,8 @@ class Mask:
         y1 = (new_height - self.origin_height) // 2
         y2 = new_height - y1
         resized_img = resized_img.crop((x1, y1, x2, y2))
+
+        
 
         return resized_img
 
@@ -79,10 +82,16 @@ class Mask:
     def resize(self):
         return Exception("Not implemented function")
 
+    def generate_origin_image_mask(self):
+        return self.generate_custom_image_mask(
+            color=None,
+            save=True,
+            origin=True,
+        )
+
     def generate_image_mask(self):
         return self.generate_custom_image_mask(
-            color=Color()("white"),
-            save=True,
+            color=Color()("white"), save=True, tag="_origin"
         )
 
     def generate_transparent_mask(self, color):
@@ -90,33 +99,45 @@ class Mask:
         return self.generate_custom_image_mask(
             color=color,
             background_color=(0, 0, 0, 0),
-            tag="transparent",
+            tag="_transparent",
             save=True,
+            opacity=100,
         )
 
     def generate_custom_image_mask(
         self,
-        color=(255, 255, 255, 255),
+        color=(255, 255, 255),
         background_color=(0, 0, 0, 255),
         tag="",
         save=False,
+        opacity=255,
+        origin=False,
     ):
+
         width = self.bits_mask.shape[0]
         height = self.bits_mask.shape[1]
         img = Image.new("RGBA", (width, height), background_color)
         pixels = img.load()
 
+        if origin:
+            origin_pixels = self.origin_image.load()
+
         for row_index, row in enumerate(self.bits_mask):
             for colunm_index, bit in enumerate(row):
                 if bit == 1:
-                    pixels[row_index, colunm_index] = (
-                        color[0],
-                        color[1],
-                        color[2],
-                        100,
-                    )
+                    if not origin:
+                        pixels[row_index, colunm_index] = (
+                            color[0],
+                            color[1],
+                            color[2],
+                            opacity,
+                        )
+                    else:
+                        pixels[row_index, colunm_index] = origin_pixels[
+                            row_index, colunm_index
+                        ]
 
         img = self.resize_to_origin(img)
         if save:
-            img.save(f"{Data.generation_path(self.name)}_{tag}.png")
+            img.save(f"{Data.generation_path(self.name)}{tag}.png")
         return img

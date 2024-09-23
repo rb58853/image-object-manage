@@ -62,7 +62,7 @@ class ImageFeature:
             ax.axis("off")
 
             color = self.color("red")
-            paint = Paint(self.image)
+            paint = Paint(self.image, color=color)
             if boxes or areas:
                 for mask in masks:
                     paint.draw_area_and_box_from_mask(
@@ -99,10 +99,10 @@ class Paint:
         width = mask.width
         height = mask.height
 
-        ax.add_patch(Rectangle((x1, y1), width, height, fill=False, edgecolor=color))
+        ax.add_patch(Rectangle((x1, y1), width, height, fill=False, edgecolor='red'))
 
     def area(self, mask: Mask, ax, color):
         new_img = self.image.copy()
-        layer = mask.generate_transparent_mask()
+        layer = mask.generate_transparent_mask(color=color)
         new_img.paste(layer, mask=layer)
         self.image = new_img
