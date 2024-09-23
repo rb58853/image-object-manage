@@ -10,7 +10,10 @@ yolov8m-seg.pt
 
 #deep_data
 src/models/fill/deep_fill_v2/generative_inpainting/examples
-view_img.py
 
 #data
 data/images/generation/
+
+#tests
+view_img.py
+test.py

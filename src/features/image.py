@@ -1,9 +1,4 @@
-# from PIL import ImageTk
-import matplotlib
-
-matplotlib.use("gtk4agg")
-# matplotlib.use("TkAgg")
-
+from PIL import Image
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 from src.models.object_detection.default import model as segmentation_model
@@ -30,7 +25,8 @@ class ImageFeature:
 
     def __init__(self, image_path, name="image") -> None:
         super().__init__(),
-        self.image = cv2.imread(image_path)
+        self.image = Image.open(image_path)
+        # self.image = cv2.imread(image_path)
         self.name: str = name
         self.masks: list[Mask] = [] if self.image is None else self.generate_masks()
         self.cls_masks: dict[str : list[Mask]] = {}
@@ -56,26 +52,22 @@ class ImageFeature:
     def append_mask(self, mask: Mask, position: tuple, height, width):
         return Exception("Not implemented function")
 
-    def append_box_from_mask(self, mask: Mask, ax):
-        x1 = mask.box["left"]
-        y1 = mask.box["bottom"]
-        width = mask.width
-        height = mask.height
-
-        # color = Color.get_color()
-        ax.add_patch(Rectangle((x1, y1), width, height, fill=False, edgecolor="red"))
-        # ax.annotate(mask.name, xy= (100,100), xytext=(150,150))
-        # ax.add_patch(Rectangle((x1, y1), width, height, fill=False, edgecolor=color))
-
-    def save_xor_plot(self, masks=[], plot=True, save=True):
+    def save_xor_plot(self, masks=None, plot=True, save=True, boxes=True, areas=True):
+        masks = self.masks if masks is None else masks
         path = Data.generation_path(self.name)
         if self.image is not None:
             # plt.figure(figsize=(8, 8))
             fig, ax = plt.subplots()
-            ax.imshow(self.image)
             ax.axis("off")
-            for mask in masks:
-                self.append_box_from_mask(mask=mask, ax=ax)
+
+            paint = Paint(self.image)
+            if boxes or areas:
+                for mask in masks:
+                    paint.draw_area_and_box_from_mask(
+                        mask=mask, ax=ax, box=boxes, area=areas
+                    )
+
+            ax.imshow(paint.image)
 
             plt.title(f"{self.name}")
             if save:
@@ -85,3 +77,32 @@ class ImageFeature:
 
         else:
             raise Exception("Image is None")
+
+
+class Paint:
+    def __init__(self, image) -> None:
+        # self.image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        self.image = image
+
+    def draw_area_and_box_from_mask(self, mask: Mask, ax, box=True, area=True):
+        # color = Color.get_color()
+        color = "red"
+        if area:
+            self.area(mask, ax, color)
+        if box:
+            self.box(mask, ax, color)
+
+    def box(self, mask: Mask, ax, color):
+        x1 = mask.box["left"]
+        y1 = mask.box["top"]
+        width = mask.width
+        height = mask.height
+
+        ax.add_patch(Rectangle((x1, y1), width, height, fill=False, edgecolor=color))
+        # ax.annotate(mask.name, xy= (100,100), xytext=(150,150))
+
+    def area(self, mask: Mask, ax, color):
+        new_img = self.image.copy()
+        layer = mask.generate_transparent_mask()
+        new_img.paste(layer, mask=layer)
+        self.image = new_img

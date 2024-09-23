@@ -68,7 +68,13 @@ class SAM(ObjectDetectionModel):
                 bits_mask = mask["segmentation"]
                 box = get_box(box_im)
 
-                images_mask.append(Mask(bits_mask=bits_mask, box=box))
+                images_mask.append(
+                    Mask(
+                        bits_mask=bits_mask,
+                        box=box,
+                        image=image,
+                    )
+                )
 
         return images_mask
 
