@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from src.models.object_detection.default import model as segmentation_model
 from .mask import Mask
 from src.config.config import Data
-import cv2
+from src.config.colors import Color
 
 
 class ImageFeature:
@@ -30,6 +30,7 @@ class ImageFeature:
         self.name: str = name
         self.masks: list[Mask] = [] if self.image is None else self.generate_masks()
         self.cls_masks: dict[str : list[Mask]] = {}
+        self.color = Color()
 
     def __str__(self) -> str:
         return f"{self.name}"
@@ -60,6 +61,7 @@ class ImageFeature:
             fig, ax = plt.subplots()
             ax.axis("off")
 
+            color = self.color("red")
             paint = Paint(self.image)
             if boxes or areas:
                 for mask in masks:
@@ -80,13 +82,12 @@ class ImageFeature:
 
 
 class Paint:
-    def __init__(self, image) -> None:
-        # self.image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    def __init__(self, image, color) -> None:
         self.image = image
+        self.color = color
 
     def draw_area_and_box_from_mask(self, mask: Mask, ax, box=True, area=True):
-        # color = Color.get_color()
-        color = "red"
+        color = self.color
         if area:
             self.area(mask, ax, color)
         if box:
@@ -99,7 +100,6 @@ class Paint:
         height = mask.height
 
         ax.add_patch(Rectangle((x1, y1), width, height, fill=False, edgecolor=color))
-        # ax.annotate(mask.name, xy= (100,100), xytext=(150,150))
 
     def area(self, mask: Mask, ax, color):
         new_img = self.image.copy()
