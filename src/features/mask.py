@@ -58,7 +58,7 @@ class Mask:
         return self.embedding_attr
 
     def __call__(self):
-        return self.generate_image_mask(padding=5, save=False)
+        return self.generate_image_mask(padding=2, save=False)
 
     def resize_to_origin(self, image, change_bit_mask=True):
         current_width = self.bits_mask.shape[0]

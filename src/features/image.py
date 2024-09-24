@@ -5,6 +5,7 @@ from src.models.object_detection.default import model as segmentation_model
 from src.config.config import Data
 from src.config.colors import Color
 from .mask import Mask
+
 # from src.models.fill.default import model as fill_model
 
 
@@ -24,11 +25,17 @@ class ImageFeature:
     - **`generate_full_masks`**: Genera todas las mascaras de una imagen, es util para generar cada una de las mascaras una sola vez y luego con acceso a estas crear el diccionario de clases a mascara segun las mascaras deseadas.
     """
 
-    def __init__(self, image_path, name="image") -> None:
+    def __init__(self, image_path, image: Image = None, name="image") -> None:
         super().__init__(),
-        self.origin = Image.open(image_path)
-        self.image = Image.open(image_path)
-        # self.image = cv2.imread(image_path)
+        if image:
+            pass
+        else:
+            try:
+                self.origin = Image.open(image_path)
+                self.image = Image.open(image_path)
+            except:
+                raise Exception("Image not found")
+
         self.name: str = name
         self.masks: list[Mask] = [] if self.image is None else self.generate_masks()
         self.cls_masks: dict[str : list[Mask]] = {}
@@ -55,7 +62,7 @@ class ImageFeature:
     def fill_mask(self, mask: Mask):
         # Importacion interna para evitar cargas en todo momento
         from src.models.fill.default import model as fill_model
-        
+
         mask_image = mask()
         image = self.image
         filled_image = fill_model(image=image, mask=mask)
@@ -84,13 +91,13 @@ class ImageFeature:
                     )
 
             ax.imshow(paint.image)
-
-            plt.title(f"{self.name}")
+            plt.title(f"objects detection in {self.name}")
             if save:
                 plt.savefig(path)
             if plot:
                 plt.plot()
 
+            # return fig
             return paint.image
         else:
             raise Exception("Image is None")
