@@ -2,9 +2,10 @@ from PIL import Image
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 from src.models.object_detection.default import model as segmentation_model
-from .mask import Mask
 from src.config.config import Data
 from src.config.colors import Color
+from .mask import Mask
+# from src.models.fill.default import model as fill_model
 
 
 class ImageFeature:
@@ -25,6 +26,7 @@ class ImageFeature:
 
     def __init__(self, image_path, name="image") -> None:
         super().__init__(),
+        self.origin = Image.open(image_path)
         self.image = Image.open(image_path)
         # self.image = cv2.imread(image_path)
         self.name: str = name
@@ -32,26 +34,38 @@ class ImageFeature:
         self.cls_masks: dict[str : list[Mask]] = {}
         self.color = Color()
 
-    def __str__(self) -> str:
-        return f"{self.name}"
-
-    def __repr__(self) -> str:
-        return self.name
-
     def generate_masks(self):
-        return segmentation_model.generate_masks(image=self.image)
+        # Para evitar importacion circular, no se pueden devolver mascaras directamente en los modelos de segmentacion
+        masks = segmentation_model.generate_masks(image=self.image)
+        self.masks = [
+            Mask(
+                bits_mask=mask["bits_mask"],
+                box=mask["box"],
+                image=mask["image"],
+                clss=mask["clss"],
+            )
+            for mask in masks
+        ]
+        return self.masks
 
     def generate_cls_masks(self, cls):
         masks = [mask for mask in self.masks if mask.match_with_cls(cls)]
         self.cls_masks[cls] = masks
-        return self.cls_masks[cls]
 
-    def fill_mask(self, mask):
-        # Hacer el proceso de llenar ese espacio de la mascara
-        return mask
+    def fill_mask(self, mask: Mask):
+        # Importacion interna para evitar cargas en todo momento
+        from src.models.fill.default import model as fill_model
+        
+        mask_image = mask()
+        image = self.image
+        filled_image = fill_model(image=image, mask=mask)
+        return {"image": filled_image, "mask": mask}
 
     def append_mask(self, mask: Mask, position: tuple, height, width):
         return Exception("Not implemented function")
+
+    def replace_object(self, mask: Mask, new_mask: Mask):
+        pass
 
     def save_xor_plot(self, masks=None, plot=True, save=True, boxes=True, areas=True):
         masks = self.masks if masks is None else masks
@@ -77,8 +91,15 @@ class ImageFeature:
             if plot:
                 plt.plot()
 
+            return paint.image
         else:
             raise Exception("Image is None")
+
+    def __str__(self) -> str:
+        return f"{self.name}"
+
+    def __repr__(self) -> str:
+        return self.name
 
 
 class Paint:
@@ -99,7 +120,7 @@ class Paint:
         width = mask.width
         height = mask.height
 
-        ax.add_patch(Rectangle((x1, y1), width, height, fill=False, edgecolor='red'))
+        ax.add_patch(Rectangle((x1, y1), width, height, fill=False, edgecolor="red"))
 
     def area(self, mask: Mask, ax, color):
         new_img = self.image.copy()

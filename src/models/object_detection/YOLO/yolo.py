@@ -1,7 +1,6 @@
 from ultralytics import YOLO
 from ..base import ObjectDetectionModel
 from src.utils.inverse_numpy import inverse_array
-from src.features.mask import Mask
 import numpy as np
 import torch
 
@@ -41,17 +40,17 @@ class YoloSegmentation(ObjectDetectionModel):
                         "top": float(box[1]),
                         "bottom": float(box[3]),
                     }
-                    mask = np.array(mask)
+                    mask = np.array(mask.cpu())
 
                     # hallar el array inverso xq la mascara esta invertida
                     mask = inverse_array(mask)
                     masks_result.append(
-                        Mask(
-                            bits_mask=mask,
-                            box=box,
-                            image=image,
-                            clss=self.names[int(cls)],
-                        )
+                        {
+                            "bits_mask": mask,
+                            "box": box,
+                            "image": image,
+                            "clss": self.names[int(cls)],
+                        }
                     )
                     # masks_dict[cls].append(Mask(bits_mask=mask, box=box, clss=cls))
         return masks_result

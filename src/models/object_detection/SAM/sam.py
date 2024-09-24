@@ -1,5 +1,4 @@
 from src.config.config import SamEnv as env
-from src.features.mask import Mask
 import torch
 import torchvision
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
@@ -69,11 +68,11 @@ class SAM(ObjectDetectionModel):
                 box = get_box(box_im)
 
                 images_mask.append(
-                    Mask(
-                        bits_mask=bits_mask,
-                        box=box,
-                        image=image,
-                    )
+                    {
+                        "bits_mask": bits_mask,
+                        "box": box,
+                        "image": image,
+                    }
                 )
 
         return images_mask

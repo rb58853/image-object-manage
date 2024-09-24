@@ -6,6 +6,3 @@ image = ImageFeature(image_path=image_path, name="image")
 image.generate_cls_masks("cat")
 image.save_xor_plot(plot=False)
 cats = image.cls_masks["cat"]
-image.masks[0].generate_image_mask()
-image.masks[0].generate_origin_image_mask()
-# image.masks[0].generate_transparent_mask()

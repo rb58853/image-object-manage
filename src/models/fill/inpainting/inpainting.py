@@ -1,34 +1,35 @@
-
 import PIL
 import numpy as np
 import torch
 import os
 from diffusers import AutoPipelineForInpainting
 from diffusers.utils import load_image, make_image_grid
+from src.config.cuda import check_and_convert_to_cuda
+from ..base import FillModel
 
-pretraineds_path = os.path.sep.join([os.getcwd(), "data", "pretraineds", "inpainting"])
+class Inpainting:
+    def __init__(self) -> None:
+        self.model = self.load_model()
+
+    def load_model(self):
+        pipeline = AutoPipelineForInpainting.from_pretrained(
+            "runwayml/stable-diffusion-inpainting",
+            torch_dtype=torch.float16,
+        )
+        pipeline = check_and_convert_to_cuda(pipeline)
+
+    def fill(self, image, mask, save=True):
+        image = image.resize((512, 512))
+        mask = mask.resize((512, 512))
+
+        prompt = "fill the mask space using the origin background image environment"
+        filled_image = self.model.pipeline(
+            prompt=prompt, image=image, mask_image=mask
+        ).images[0]
+
+        return filled_image
 
 
-device = "cuda"
-pipeline = AutoPipelineForInpainting.from_pretrained(
-    "runwayml/stable-diffusion-inpainting",
-    torch_dtype=torch.float16,
-)
-pipeline.save_pretrained(
-    os.path.sep.join([pretraineds_path, "runwayml/stable-diffusion-inpainting"])
-)
-pipeline = pipeline.to(device)
-
-img_url = "https://raw.githubusercontent.com/CompVis/latent-diffusion/main/data/inpainting_examples/overture-creations-5sI6fQgYIuo.png"
-mask_url = "https://raw.githubusercontent.com/CompVis/latent-diffusion/main/data/inpainting_examples/overture-creations-5sI6fQgYIuo_mask.png"
-
-init_image = load_image(img_url).resize((512, 512))
-mask_image = load_image(mask_url).resize((512, 512))
-
-prompt = "Face of a yellow cat, high resolution, sitting on a park bench"
-repainted_image = pipeline(prompt=prompt, image=init_image, mask_image=mask_image).images[0]
-repainted_image.save("repainted_image.png")
-
-unmasked_unchanged_image = pipeline.image_processor.apply_overlay(mask_image, init_image, repainted_image)
-unmasked_unchanged_image.save("force_unmasked_unchanged.png")
-make_image_grid([init_image, mask_image, repainted_image, unmasked_unchanged_image], rows=2, cols=2)
+# unmasked_unchanged_image = pipeline.image_processor.apply_overlay(mask_image, init_image, new_image)
+# unmasked_unchanged_image.save("force_unmasked_unchanged.png")
+# make_image_grid([init_image, mask_image, repainted_image, unmasked_unchanged_image], rows=2, cols=2)
