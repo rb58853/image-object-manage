@@ -8,7 +8,7 @@ from src.config.cuda import check_and_convert_to_cuda
 from ..base import FillModel
 
 
-class Inpainting:
+class Inpainting(FillModel):
     def __init__(self) -> None:
         self.model = self.load_model()
 
@@ -25,7 +25,7 @@ class Inpainting:
         mask = mask.resize((512, 512))
 
         prompt = "fill the mask space using the origin background image environment"
-        filled_image = self.model.pipeline(
+        filled_image = self.model(
             prompt=prompt, image=image, mask_image=mask
         ).images[0]
 
