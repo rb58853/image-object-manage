@@ -74,7 +74,7 @@ class ImageFeature:
     def replace_object(self, mask: Mask, new_mask: Mask):
         pass
 
-    def save_xor_plot(self, masks=None, plot=True, save=True, boxes=True, areas=True):
+    def save_xor_plot(self, masks=None, plot=True, save=False, boxes=True, areas=True):
         masks = self.masks if masks is None else masks
         path = Data.generation_path(self.name)
         if self.image is not None:

@@ -21,4 +21,6 @@ class SamEnv:
 
 class Data:
     def generation_path(name):
-        return os.path.sep.join(["data", "images", "generation", name])
+        path = os.path.sep.join(["data", "images", "generation", name])
+        
+        return path

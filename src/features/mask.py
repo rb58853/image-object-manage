@@ -128,7 +128,7 @@ class Mask:
             img.save(f"{Data.generation_path(self.name)}_box.png")
         return img
 
-    def generate_image_mask(self, padding=0, edge_blur=0, save=True):
+    def generate_image_mask(self, padding=0, edge_blur=0, save=False):
         return self.generate_custom_image_mask(
             color=Color()("white"),
             save=save,
@@ -136,7 +136,7 @@ class Mask:
             edge_blur=edge_blur,
         )
 
-    def generate_transparent_mask(self, color, padding=0, edge_blur=0, save=True):
+    def generate_transparent_mask(self, color, padding=0, edge_blur=0, save=False):
         color = color
         return self.generate_custom_image_mask(
             color=color,

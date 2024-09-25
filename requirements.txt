@@ -1,4 +1,6 @@
+torch
 ipywidgets
 ultralytics
 pillow
 diffusers
+segment_anything
