@@ -65,7 +65,7 @@ class ImageFeature:
 
         mask_image = mask()
         image = self.image
-        filled_image = fill_model(image=image, mask=mask)
+        filled_image = fill_model(image=image, mask=mask_image)
         return {"image": filled_image, "mask": mask}
 
     def append_mask(self, mask: Mask, position: tuple, height, width):
