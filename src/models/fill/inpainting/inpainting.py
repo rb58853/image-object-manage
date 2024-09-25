@@ -7,6 +7,7 @@ from diffusers.utils import load_image, make_image_grid
 from src.config.cuda import check_and_convert_to_cuda
 from ..base import FillModel
 
+
 class Inpainting:
     def __init__(self) -> None:
         self.model = self.load_model()
@@ -17,6 +18,7 @@ class Inpainting:
             torch_dtype=torch.float16,
         )
         pipeline = check_and_convert_to_cuda(pipeline)
+        return pipeline
 
     def fill(self, image, mask, save=True):
         image = image.resize((512, 512))
