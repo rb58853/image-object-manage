@@ -1,7 +1,4 @@
-import PIL
-import numpy as np
 import torch
-import os
 from diffusers import AutoPipelineForInpainting
 from diffusers.utils import load_image, make_image_grid
 from src.config.cuda import check_and_convert_to_cuda

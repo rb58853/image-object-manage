@@ -200,6 +200,7 @@ class MaskImage:
         else:
             img = Image.new("RGBA", (width, height), background_color)
 
+        origin_pixels = None
         if origin_object:
             origin_image = self.mask.origin_image.copy()
             origin_image = self.resize(origin_image, width=width, height=height)
