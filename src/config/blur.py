@@ -13,10 +13,13 @@ class BlurSteps:
 
 class BlurFunctions:
     def lineal(length, strong=1):
+        return BlurSteps(steps=[(1 - (x / length)) * strong for x in range(length)])
+
+    def square(length, strong=1):
         return BlurSteps(
-            steps=[(1 - (x / length)) * strong for x in range(length)]
+            steps=[pow((x / length), 2) * strong for x in range(length)][::-1]
         )
 
 
 class Blur:
-    default_function = BlurFunctions.lineal
+    default_function = BlurFunctions.square
