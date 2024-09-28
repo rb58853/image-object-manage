@@ -72,13 +72,35 @@ class Mask:
             # TODO usar embeddings multimodales para este caso y definir un umbral para el matcheo
             return False
 
-    def resize(self):
-        return Exception("Not implemented function")
-
 
 class MaskImageManager:
     def __init__(self, mask: Mask):
         self.mask = mask
+
+    def resize(self, image: Image, width, height):
+        current_width = image.width
+        current_height = image.height
+
+        scale_factor = max(
+            width / current_width,
+            height / current_height,
+        )
+
+        new_width = int(current_width * scale_factor)
+        new_height = int(current_height * scale_factor)
+
+        # resize image
+        resized_img = image.resize((new_width, new_height))
+
+        # Crop image
+        x1 = (new_width - width) // 2
+        x2 = new_width - x1
+        y1 = (new_height - height) // 2
+        y2 = new_height - y1
+        resized_img = resized_img.crop((x1, y1, x2, y2))
+        resized_img = image.resize((width, height))
+
+        return resized_img
 
     def resize_to_origin(self, image, change_bit_mask=True):
         current_width = self.mask.bits_mask.shape[0]
@@ -111,15 +133,16 @@ class MaskImageManager:
             save=True,
         )
 
-    def generate_object_mask(self, padding=0, edge_blur=5, blur_strong=1, save=True):
-        mask = self.generate_custom_image_mask(
+    def generate_object_mask(self, padding=0, edge_blur=0, blur_strong=1, save=True):
+        object_mask = self.generate_custom_image_mask(
             background_color=(0, 0, 0, 0),
-            tag="blur_mask",
+            tag="object_mask",
             save=True,
             padding=padding,
             edge_blur=edge_blur,
             blur_strong=blur_strong,
             opacity=1,
+            origin_object=True,
         )
 
         pass
@@ -162,6 +185,7 @@ class MaskImageManager:
         tag="",
         save=False,
         origin_background=False,
+        origin_object=False,
         opacity=1,
         padding=0,
         edge_blur=0,
@@ -177,17 +201,31 @@ class MaskImageManager:
         else:
             img = Image.new("RGBA", (width, height), background_color)
 
+        if origin_object:
+            origin_image = self.mask.origin_image.copy()
+            origin_image = self.resize(origin_image, width=width, height=height)
+            origin_pixels = origin_image.load()
+
         pixels = img.load()
 
         for row_index, row in enumerate(self.mask.bits_mask):
             for colunm_index, bit in enumerate(row):
                 if bit == 1:
-                    pixels[row_index, colunm_index] = (
-                        color[0],
-                        color[1],
-                        color[2],
-                        int(opacity * color[3]),
-                    )
+                    if origin_object:
+                        origin_pixel = origin_pixels[row_index, colunm_index]
+                        pixels[row_index, colunm_index] = (
+                            origin_pixel[0],
+                            origin_pixel[1],
+                            origin_pixel[2],
+                            int(opacity * 255),
+                        )
+                    else:
+                        pixels[row_index, colunm_index] = (
+                            color[0],
+                            color[1],
+                            color[2],
+                            int(opacity * color[3]),
+                        )
 
         if padding > 0 or edge_blur > 0:
             img = expand_image(
@@ -198,6 +236,8 @@ class MaskImageManager:
                 edge_blur=edge_blur,
                 padding=padding,
                 blur_strong=blur_strong,
+                background_color=background_color if origin_object else None,
+                origin_image=self.mask.origin_image.copy(),
             )
 
         img = self.resize_to_origin(img)
@@ -238,8 +278,14 @@ def expand_image(
     edge_blur=0,
     padding=0,
     blur_strong=1,
+    background_color=None,
+    origin_image=None,
 ):
+    """
+    `background_color`: Si no es None la imagen se amplia segun el fondo, es decir se pregunta por los pixeles que son iguals al fondo en vez de preguntar por los pixeles que son distintos al color de la mascara. En caso de no ser none entonces tiene que ser el color del fondo
+    """
     # Costo n*m encontrar el borde, + sumatoria largo del borde que se autogenera, sumatoria hasta blur+padding
+
     pixels = image.load()
     new_edge = edge_expand(edge, pixels, mask_color=color)
 
@@ -280,7 +326,10 @@ def expand_image(
     return image
 
 
-def edge_expand(edge, pixels, mask_color=(255, 255, 255)):
+def edge_expand(edge, pixels, mask_color=(255, 255, 255), background_color=None):
+    """
+    `background_color`: Si es verdadero la imagen se amplia segun el fondo, es decir se pregunta por los pixeles que son iguals al fondo en vez de preguntar por los pixeles que son distintos al color de la mascara.
+    """
     # TODO arreglar el tema de supoerposicion para hacer un poco menos de operaciones
     mask_color = (mask_color[0], mask_color[1], mask_color[2])
 
