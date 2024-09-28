@@ -131,6 +131,6 @@ class Paint:
 
     def area(self, mask: Mask, ax, color):
         new_img = self.image.copy()
-        layer = mask.generate_transparent_mask(color=color)
+        layer = mask.image_manager.generate_transparent_mask(color=color)
         new_img.paste(layer, mask=layer)
         self.image = new_img

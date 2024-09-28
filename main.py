@@ -7,11 +7,13 @@ image_path = "/media/raul/d1964fe0-512e-4389-b8f7-b1bd04e829612/Projects/Free/im
 # image.save_xor_plot(plot=False)
 # cats = image.cls_masks["cat"]
 
-cls = 'cat'
+cls = "cat"
 image = ImageFeature(image_path=image_path, name=f"{cls} image")
 image.generate_cls_masks(cls)
 cats = image.cls_masks[cls]
 mask = cats[0]
-image.fill_mask(mask)
 
-image.save_xor_plot()
+mask_image_manager = mask.image_manager
+mask_image_manager.generate_image_mask(save=True, padding=3, edge_blur=10)
+# mask_image_manager.generate_transparent_mask(save=True, padding=10)
+image.save_xor_plot(save=True)

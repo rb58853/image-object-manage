@@ -34,6 +34,8 @@ class Mask:
         self.origin_width = image.width
         self.edge_ = None
 
+        self.image_manager = MaskImageManager(self)
+
     def set_name(self, name):
         self.name = name
 
@@ -60,29 +62,6 @@ class Mask:
     def __call__(self):
         return self.generate_image_mask(padding=2, save=False)
 
-    def resize_to_origin(self, image, change_bit_mask=True):
-        current_width = self.bits_mask.shape[0]
-        current_height = self.bits_mask.shape[1]
-
-        scale_factor = max(
-            self.origin_width / current_width, self.origin_height / current_height
-        )
-
-        new_width = int(current_width * scale_factor)
-        new_height = int(current_height * scale_factor)
-
-        # resize image
-        resized_img = image.resize((new_width, new_height))
-
-        # Crop image
-        x1 = (new_width - self.origin_width) // 2
-        x2 = new_width - x1
-        y1 = (new_height - self.origin_height) // 2
-        y2 = new_height - y1
-        resized_img = resized_img.crop((x1, y1, x2, y2))
-
-        return resized_img
-
     def match_with_cls(self, cls):
         """
         Devuelve si la mascara matchea con la clase pedida
@@ -96,37 +75,63 @@ class Mask:
     def resize(self):
         return Exception("Not implemented function")
 
+
+class MaskImageManager:
+    def __init__(self, mask: Mask):
+        self.mask = mask
+
+    def resize_to_origin(self, image, change_bit_mask=True):
+        current_width = self.mask.bits_mask.shape[0]
+        current_height = self.mask.bits_mask.shape[1]
+
+        scale_factor = max(
+            self.mask.origin_width / current_width,
+            self.mask.origin_height / current_height,
+        )
+
+        new_width = int(current_width * scale_factor)
+        new_height = int(current_height * scale_factor)
+
+        # resize image
+        resized_img = image.resize((new_width, new_height))
+
+        # Crop image
+        x1 = (new_width - self.mask.origin_width) // 2
+        x2 = new_width - x1
+        y1 = (new_height - self.mask.origin_height) // 2
+        y2 = new_height - y1
+        resized_img = resized_img.crop((x1, y1, x2, y2))
+        resized_img = image.resize((self.mask.origin_width, self.mask.origin_height))
+
+        return resized_img
+
     def generate_origin_image_mask(self):
-        return
         return self.generate_custom_image_mask(
             color=None,
             save=True,
         )
 
-    def box_mask(self, padding=0, save=True):
-        width = self.origin_width
-        height = self.origin_height
-        img = Image.new("RGBA", (width, height), (0, 0, 0, 255))
-        pixels = img.load()
+    def generate_object_mask(self, padding=0, edge_blur=5, blur_strong=1, save=True):
+        mask = self.generate_custom_image_mask(
+            background_color=(0, 0, 0, 0),
+            tag="blur_mask",
+            save=True,
+            padding=padding,
+            edge_blur=edge_blur,
+            blur_strong=blur_strong,
+            opacity=1,
+        )
 
-        left = self.box["left"] - padding
-        right = self.box["right"] + padding
-        top = self.box["top"] - padding
-        bottom = self.box["bottom"] + padding
+        pass
 
-        for row_index, row in enumerate(self.bits_mask):
-            for colunm_index, _ in enumerate(row):
-                if (
-                    colunm_index >= left
-                    and colunm_index <= right
-                    and row_index >= top
-                    and row_index <= bottom
-                ):
-                    pixels[colunm_index, row_index] = (255, 255, 255, 255)
-
-        if save:
-            img.save(f"{Data.generation_path(self.name)}_box.png")
-        return img
+    def generate_image_mask_background_origin(self, padding=0, edge_blur=0, save=False):
+        return self.generate_custom_image_mask(
+            color=Color()("white"),
+            save=save,
+            padding=padding,
+            edge_blur=edge_blur,
+            origin_background=True,
+        )
 
     def generate_image_mask(self, padding=0, edge_blur=0, save=False):
         return self.generate_custom_image_mask(
@@ -136,7 +141,9 @@ class Mask:
             edge_blur=edge_blur,
         )
 
-    def generate_transparent_mask(self, color, padding=0, edge_blur=0, save=False):
+    def generate_transparent_mask(
+        self, color=Color()("red"), padding=0, edge_blur=0, save=False
+    ):
         color = color
         return self.generate_custom_image_mask(
             color=color,
@@ -154,17 +161,25 @@ class Mask:
         background_color=(0, 0, 0, 255),
         tag="",
         save=False,
+        origin_background=False,
         opacity=1,
         padding=0,
         edge_blur=0,
+        blur_strong=1,
     ):
 
-        width = self.bits_mask.shape[0]
-        height = self.bits_mask.shape[1]
-        img = Image.new("RGBA", (width, height), background_color)
+        width = self.mask.bits_mask.shape[0]
+        height = self.mask.bits_mask.shape[1]
+
+        if origin_background:
+            img = self.mask.origin_image.copy()
+            img = img.resize((width, height))
+        else:
+            img = Image.new("RGBA", (width, height), background_color)
+
         pixels = img.load()
 
-        for row_index, row in enumerate(self.bits_mask):
+        for row_index, row in enumerate(self.mask.bits_mask):
             for colunm_index, bit in enumerate(row):
                 if bit == 1:
                     pixels[row_index, colunm_index] = (
@@ -177,16 +192,17 @@ class Mask:
         if padding > 0 or edge_blur > 0:
             img = expand_image(
                 image=img,
-                edge=self.edge(),
+                edge=self.mask.edge(),
                 color=color,
                 opacity=opacity,
                 edge_blur=edge_blur,
                 padding=padding,
+                blur_strong=blur_strong,
             )
 
         img = self.resize_to_origin(img)
         if save:
-            img.save(f"{Data.generation_path(self.name)}{tag}.png")
+            img.save(f"{Data.generation_path(self.mask.name)}{tag}.png")
         return img
 
 
@@ -214,10 +230,18 @@ def is_bit_edge(bits, coor: tuple):
     return False
 
 
-def expand_image(image, edge, color, opacity, edge_blur=0, padding=0):
+def expand_image(
+    image,
+    edge,
+    color,
+    opacity,
+    edge_blur=0,
+    padding=0,
+    blur_strong=1,
+):
     # Costo n*m encontrar el borde, + sumatoria largo del borde que se autogenera, sumatoria hasta blur+padding
     pixels = image.load()
-    new_edge = edge_expand(edge, pixels)
+    new_edge = edge_expand(edge, pixels, mask_color=color)
 
     while padding > 0:
         padding -= 1
@@ -231,24 +255,65 @@ def expand_image(image, edge, color, opacity, edge_blur=0, padding=0):
                 )
             except:
                 continue
-        new_edge = edge_expand(new_edge, pixels)
+        new_edge = edge_expand(new_edge, pixels, mask_color=color)
+
+    opacity *= blur_strong
+    base_opacity = opacity
+    len_blur = edge_blur
+
+    while edge_blur > 0:
+        edge_blur -= 1
+        opacity -= base_opacity / len_blur
+
+        for point in new_edge:
+            try:
+                pixels[point[0], point[1]] = (
+                    color[0],
+                    color[1],
+                    color[2],
+                    int(color[3] * opacity),
+                )
+            except:
+                continue
+        new_edge = edge_expand(new_edge, pixels, mask_color=color)
 
     return image
 
 
-def edge_expand(edge, pixels):
+def edge_expand(edge, pixels, mask_color=(255, 255, 255)):
     # TODO arreglar el tema de supoerposicion para hacer un poco menos de operaciones
+    mask_color = (mask_color[0], mask_color[1], mask_color[2])
+
+    def is_mask_pixel(pixel):
+
+        return (
+            pixel[0] == mask_color[0]
+            and pixel[1] == mask_color[1]
+            and pixel[2] == mask_color[2]
+        )
+
     new_edge = []
     for point in edge:
         for i in [-1, 1]:
-            if point_in_range((point[0] + i, point[1]), pixels):
-                if pixels[point[0] + i, point[1]][0] == 0:
-                    new_edge.append((point[0] + i, point[1]))
+            point_ = (point[0] + i, point[1])
+            if (
+                point_in_range(point_, pixels)
+                and point_ not in edge
+                and point_ not in new_edge
+            ):
+                pixel = pixels[point_[0], point_[1]]
+                if not is_mask_pixel(pixels[point_[0], point_[1]]):
+                    new_edge.append((point_[0], point_[1]))
 
-            if point_in_range((point[0], point[1] + i), pixels):
-                if pixels[point[0], point[1] + i][0] == 0:
-                    new_edge.append((point[0], point[1] + i))
-
+            point_ = (point[0], point[1] + i)
+            if (
+                point_in_range(point_, pixels)
+                and point_ not in edge
+                and point_ not in new_edge
+            ):
+                pixel = pixels[point_[0], point_[1]]
+                if not is_mask_pixel(pixels[point_[0], point_[1]]):
+                    new_edge.append((point_[0], point_[1]))
     return new_edge
 
 
