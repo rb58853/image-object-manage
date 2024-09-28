@@ -2,6 +2,7 @@ from PIL import Image
 from src.models.embeddings.default import model as embedding_model
 from src.config.config import Data
 from src.config.colors import Color
+from src.config.blur import Blur
 import numpy as np
 
 
@@ -93,39 +94,18 @@ class MaskImageManager:
         resized_img = image.resize((new_width, new_height))
 
         # Crop image
-        x1 = (new_width - width) // 2
+        x1 = (new_width - width) / 2
         x2 = new_width - x1
-        y1 = (new_height - height) // 2
+        y1 = (new_height - height) / 2
         y2 = new_height - y1
         resized_img = resized_img.crop((x1, y1, x2, y2))
-        resized_img = image.resize((width, height))
 
         return resized_img
 
-    def resize_to_origin(self, image, change_bit_mask=True):
-        current_width = self.mask.bits_mask.shape[0]
-        current_height = self.mask.bits_mask.shape[1]
-
-        scale_factor = max(
-            self.mask.origin_width / current_width,
-            self.mask.origin_height / current_height,
+    def resize_to_origin(self, image):
+        return self.resize(
+            image=image, width=self.mask.origin_width, height=self.mask.origin_height
         )
-
-        new_width = int(current_width * scale_factor)
-        new_height = int(current_height * scale_factor)
-
-        # resize image
-        resized_img = image.resize((new_width, new_height))
-
-        # Crop image
-        x1 = (new_width - self.mask.origin_width) // 2
-        x2 = new_width - x1
-        y1 = (new_height - self.mask.origin_height) // 2
-        y2 = new_height - y1
-        resized_img = resized_img.crop((x1, y1, x2, y2))
-        resized_img = image.resize((self.mask.origin_width, self.mask.origin_height))
-
-        return resized_img
 
     def generate_origin_image_mask(self):
         return self.generate_custom_image_mask(
@@ -237,7 +217,8 @@ class MaskImageManager:
                 padding=padding,
                 blur_strong=blur_strong,
                 background_color=background_color if origin_object else None,
-                origin_image=self.mask.origin_image.copy(),
+                origin_pixels=origin_pixels,
+                fill_with_image=origin_object,
             )
 
         img = self.resize_to_origin(img)
@@ -279,7 +260,8 @@ def expand_image(
     padding=0,
     blur_strong=1,
     background_color=None,
-    origin_image=None,
+    origin_pixels=None,
+    fill_with_image=False,
 ):
     """
     `background_color`: Si no es None la imagen se amplia segun el fondo, es decir se pregunta por los pixeles que son iguals al fondo en vez de preguntar por los pixeles que son distintos al color de la mascara. En caso de no ser none entonces tiene que ser el color del fondo
@@ -287,41 +269,64 @@ def expand_image(
     # Costo n*m encontrar el borde, + sumatoria largo del borde que se autogenera, sumatoria hasta blur+padding
 
     pixels = image.load()
-    new_edge = edge_expand(edge, pixels, mask_color=color)
+    new_edge = edge_expand(
+        edge, pixels, mask_color=color, background_color=background_color
+    )
 
     while padding > 0:
         padding -= 1
         for point in new_edge:
             try:
-                pixels[point[0], point[1]] = (
-                    color[0],
-                    color[1],
-                    color[2],
-                    color[3] * opacity,
-                )
+                if fill_with_image and origin_pixels:
+                    origin_pixel = origin_pixels[point[0], point[1]]
+                    pixels[point[0], point[1]] = (
+                        origin_pixel[0],
+                        origin_pixel[1],
+                        origin_pixel[2],
+                        int(opacity * 255),
+                    )
+                else:
+                    pixels[point[0], point[1]] = (
+                        color[0],
+                        color[1],
+                        color[2],
+                        int(color[3] * opacity),
+                    )
             except:
                 continue
-        new_edge = edge_expand(new_edge, pixels, mask_color=color)
+        new_edge = edge_expand(
+            new_edge, pixels, mask_color=color, background_color=background_color
+        )
 
-    opacity *= blur_strong
-    base_opacity = opacity
     len_blur = edge_blur
+    steps = Blur.default_function(len_blur, blur_strong)
 
     while edge_blur > 0:
         edge_blur -= 1
-        opacity -= base_opacity / len_blur
+        opacity = steps.next()
 
         for point in new_edge:
             try:
-                pixels[point[0], point[1]] = (
-                    color[0],
-                    color[1],
-                    color[2],
-                    int(color[3] * opacity),
-                )
+                if fill_with_image and origin_pixels:
+                    origin_pixel = origin_pixels[point[0], point[1]]
+                    pixels[point[0], point[1]] = (
+                        origin_pixel[0],
+                        origin_pixel[1],
+                        origin_pixel[2],
+                        int(opacity * 255),
+                    )
+                else:
+                    pixels[point[0], point[1]] = (
+                        color[0],
+                        color[1],
+                        color[2],
+                        int(color[3] * opacity),
+                    )
             except:
                 continue
-        new_edge = edge_expand(new_edge, pixels, mask_color=color)
+        new_edge = edge_expand(
+            new_edge, pixels, mask_color=color, background_color=background_color
+        )
 
     return image
 
@@ -334,12 +339,19 @@ def edge_expand(edge, pixels, mask_color=(255, 255, 255), background_color=None)
     mask_color = (mask_color[0], mask_color[1], mask_color[2])
 
     def is_mask_pixel(pixel):
-
-        return (
-            pixel[0] == mask_color[0]
-            and pixel[1] == mask_color[1]
-            and pixel[2] == mask_color[2]
-        )
+        if background_color:
+            return (
+                pixel[0] != background_color[0]
+                and pixel[1] != background_color[1]
+                and pixel[2] != background_color[2]
+                and pixel[3] != background_color[3]
+            )
+        else:
+            return (
+                pixel[0] == mask_color[0]
+                and pixel[1] == mask_color[1]
+                and pixel[2] == mask_color[2]
+            )
 
     new_edge = []
     for point in edge:

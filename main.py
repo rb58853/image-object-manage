@@ -14,6 +14,6 @@ cats = image.cls_masks[cls]
 mask = cats[0]
 
 mask_image_manager = mask.image_manager
-mask_image_manager.generate_object_mask(save=True, padding=0)
+mask_image_manager.generate_object_mask(save=True, padding=0, edge_blur = 15)
 # mask_image_manager.generate_transparent_mask(save=True, padding=10)
 image.save_xor_plot(save=True)
